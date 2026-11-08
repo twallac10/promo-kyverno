@@ -34,10 +34,15 @@ kconform() {
 build_tier() { kubectl kustomize "$ROOT/tiers/$1"; }
 
 APP=$(yq .metadata.name "$ROOT/base/helmrelease.yaml")
-is_template() { [ "$APP" = example ]; }
+# A repo whose chart has no upstream dependency yet (the template itself, or a
+# freshly created app repo) has no chart to test.
+is_template() { [ "$(yq ".dependencies // [] | length" "$ROOT/chart/Chart.yaml")" = 0 ]; }
 
 chart_deps() {
-  ls "$ROOT"/chart/charts/*.tgz >/dev/null 2>&1 || helm dependency build "$ROOT/chart" >&2
+  ls "$ROOT"/chart/charts/*.tgz >/dev/null 2>&1 && return 0
+  # helm resolves https dependencies only through a configured repo.
+  helm repo add "promo-$APP-upstream" "$(yq .upstream.repo "$ROOT/mirror/chart.yaml")" --force-update >&2
+  helm dependency build "$ROOT/chart" >&2
 }
 
 # Render the wrapper chart the way Flux installs it for a tier: chart version
