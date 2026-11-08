@@ -2,7 +2,7 @@ apiVersion: v2
 name: promo-kyverno
 description: Wrapper chart. Upstream chart as a dependency plus our Helm tests.
 type: application
-version: 3.9.2-1
+version: 3.9.2-2
 dependencies:
   - name: kyverno
     version: 3.9.2
