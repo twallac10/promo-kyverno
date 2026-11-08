@@ -1,5 +1,5 @@
 apiVersion: v2
-name: promo-example
+name: promo-kyverno
 description: Wrapper chart. Upstream chart as a dependency plus our Helm tests.
 type: application
 version: 0.1.0

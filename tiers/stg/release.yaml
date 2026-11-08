@@ -3,8 +3,8 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: example
-  namespace: example
+  name: kyverno
+  namespace: kyverno
   annotations:
     promo.twallac10.dev/chart-version: 0.0.0
 spec:
@@ -14,7 +14,7 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: example
-  namespace: example
+  name: kyverno
+  namespace: kyverno
 spec:
   values: {}

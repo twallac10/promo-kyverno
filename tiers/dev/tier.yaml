@@ -2,8 +2,8 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: example
-  namespace: example
+  name: kyverno
+  namespace: kyverno
 spec:
   upgrade:
     # onFailure: hold. No remediation, so a failed release stays up to debug.

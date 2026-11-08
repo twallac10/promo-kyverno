@@ -1,8 +1,8 @@
 # Upstream chart source and pinned version. Changing this on main triggers the
 # mirror workflow, which builds chart/ and opens a PR for the first tier.
 upstream:
-  repo: https://example.invalid/charts
-  chart: example
+  repo: https://kyverno.invalid/charts
+  chart: kyverno
   version: 0.0.0
 wrapper:
-  name: promo-example
+  name: promo-kyverno
