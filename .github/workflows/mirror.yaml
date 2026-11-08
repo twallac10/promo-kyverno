@@ -1,0 +1,15 @@
+name: mirror
+on:
+  push:
+    branches: [main]
+    paths:
+      - mirror/chart.yaml
+      - chart/**
+  workflow_dispatch:
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+jobs:
+  mirror:
+    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.2.0
