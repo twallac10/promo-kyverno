@@ -7,9 +7,9 @@ on:
       - chart/**
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
   packages: write
-  pull-requests: write
 jobs:
   mirror:
-    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.2.0
+    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.3.0
+    secrets: inherit

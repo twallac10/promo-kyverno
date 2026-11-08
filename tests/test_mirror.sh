@@ -10,3 +10,7 @@ test_mirror_caller_pinned() {
   uses=$(yq '.jobs[].uses' "$ROOT/.github/workflows/mirror.yaml")
   echo "$uses" | grep -Eq '^twallac10/promo-workflows/\.github/workflows/mirror\.yaml@v[0-9]+\.[0-9]+\.[0-9]+$' || fail "mirror caller not pinned to a tag: $uses"
 }
+
+test_mirror_caller_passes_app_secrets() {
+  [ "$(yq '.jobs.mirror.secrets' "$ROOT/.github/workflows/mirror.yaml")" = inherit ] || fail "mirror caller must use secrets: inherit (promo App token)"
+}
