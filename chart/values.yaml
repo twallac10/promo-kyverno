@@ -1,1 +1,30 @@
-{}
+# Baked into the wrapper chart (part of what we test and promote).
+kyverno:
+  fullnameOverride: kyverno
+  # Only the admission and reports controllers (LESSONS: Kyverno was the
+  # costliest app at idle).
+  backgroundController:
+    enabled: false
+  cleanupController:
+    enabled: false
+  admissionController:
+    replicas: 1
+  reportsController:
+    replicas: 1
+  config:
+    webhooks:
+      # A failed Kyverno must never block Flux or the control plane.
+      namespaceSelector:
+        matchExpressions:
+          - key: kubernetes.io/metadata.name
+            operator: NotIn
+            values: [kube-system, flux-system]
+  test:
+    image:
+      tag: v1.19.2
+
+# Our Helm tests.
+promoTest:
+  image: alpine/kubectl:1.37.2@sha256:1a7fc3308a8eee1c8bd177930fc521088c6dc64ad8b68c88319151fd87d79deb
+  # Kyverno's webhooks skip its own namespace, so the dry-run targets this one.
+  dryRunNamespace: default

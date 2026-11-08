@@ -32,3 +32,25 @@ kconform() {
 }
 
 build_tier() { kubectl kustomize "$ROOT/tiers/$1"; }
+
+APP=$(yq .metadata.name "$ROOT/base/helmrelease.yaml")
+is_template() { [ "$APP" = example ]; }
+
+chart_deps() {
+  ls "$ROOT"/chart/charts/*.tgz >/dev/null 2>&1 || helm dependency build "$ROOT/chart" >&2
+}
+
+# Render the wrapper chart the way Flux installs it for a tier: chart version
+# with a +build suffix (OCI digest) and the tier's merged HelmRelease values.
+render() {
+  local t=${1:-dev} tmp
+  chart_deps
+  tmp=$(mktemp -d)
+  cp -R "$ROOT/chart" "$tmp/chart"
+  yq -i '.version = .version + "+abc123def"' "$tmp/chart/Chart.yaml"
+  build_tier "$t" | yq 'select(.kind=="HelmRelease") | .spec.values // {}' > "$tmp/values.yaml"
+  helm template "$APP" "$tmp/chart" -n "$APP" -f "$tmp/values.yaml"
+}
+
+# Test hook resources in a rendered manifest stream on stdin.
+test_hooks() { yq 'select(.metadata.annotations."helm.sh/hook" == "test")'; }
