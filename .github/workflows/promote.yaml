@@ -1,0 +1,12 @@
+# Flux (tiers/<tier>/notify.yaml) sends repository_dispatch events here after
+# each Helm test run; the reusable workflow turns them into Deployments and PRs.
+name: promote
+on:
+  repository_dispatch:
+    types: [HelmRelease/kyverno.kyverno]
+permissions:
+  contents: read
+jobs:
+  promote:
+    uses: twallac10/promo-workflows/.github/workflows/promote.yaml@v0.4.0
+    secrets: inherit
