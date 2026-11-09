@@ -1,0 +1,44 @@
+# The one required check on main: promotion-gate. guardrails classifies the PR
+# (promotion, revert or other) and runs its checks; promotion-gate then waits in
+# the target tier's environment (prd: your approval) and passes only if
+# guardrails succeeded.
+name: gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [main]
+permissions:
+  contents: read
+  deployments: read
+  pull-requests: read
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.guardrails.outputs.environment }}
+      kind: ${{ steps.guardrails.outputs.kind }}
+    steps:
+      # main, never the PR: the guardrails read PR files with git show and run no PR code.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: guardrails
+        uses: twallac10/promo-workflows/actions/guardrails@v0.5.0
+        with:
+          token: ${{ github.token }}
+
+  promotion-gate:
+    needs: guardrails
+    # Always run: a skipped required check would count as passed.
+    if: always()
+    environment: ${{ needs.guardrails.outputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GUARDRAILS: ${{ needs.guardrails.result }}
+          KIND: ${{ needs.guardrails.outputs.kind }}
+          ENVIRONMENT: ${{ needs.guardrails.outputs.environment }}
+        run: |
+          [ "$GUARDRAILS" = success ] || { echo "::error::guardrails: $GUARDRAILS"; exit 1; }
+          echo "promotion-gate passed: ${KIND} PR, environment '${ENVIRONMENT}'"

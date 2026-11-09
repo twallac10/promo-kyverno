@@ -11,7 +11,7 @@ permissions:
   packages: write
 jobs:
   mirror:
-    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.4.2
+    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.5.0
     # Only the promo App credentials, not every repo secret.
     secrets:
       PROMO_APP_ID: ${{ secrets.PROMO_APP_ID }}
