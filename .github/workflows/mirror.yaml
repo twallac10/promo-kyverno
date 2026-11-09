@@ -11,5 +11,5 @@ permissions:
   packages: write
 jobs:
   mirror:
-    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.3.0
+    uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.3.1
     secrets: inherit
