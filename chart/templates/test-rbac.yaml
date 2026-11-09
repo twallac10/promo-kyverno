@@ -35,9 +35,14 @@ kind: ClusterRole
 metadata:
   name: {{ .Release.Name }}-test
 rules:
+  # create can't be limited by name; everything else only touches the test's own policy.
   - apiGroups: [policies.kyverno.io]
     resources: [validatingpolicies]
-    verbs: [create, delete, get, patch]
+    verbs: [create]
+  - apiGroups: [policies.kyverno.io]
+    resources: [validatingpolicies]
+    resourceNames: [{{ .Release.Name }}-test-deny]
+    verbs: [get, patch, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

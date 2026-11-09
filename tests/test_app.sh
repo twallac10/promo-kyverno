@@ -27,4 +27,8 @@ test_kyverno_deny_test() {
     echo "$rules" | jq -e --arg v "$v" '.[] | select(.apiGroups==["policies.kyverno.io"] and (.resources|index("validatingpolicies")) and (.verbs|index($v)))' >/dev/null \
       || fail "test ClusterRole lacks $v on validatingpolicies: $rules"
   done
+  # Only its own policy: an unscoped delete could remove any policy, including the
+  # guardrail (oci-only-charts) that Kyverno turns into the API server's VAP.
+  echo "$rules" | jq -e '[.[] | select(.apiGroups==["policies.kyverno.io"]) | select((.verbs - ["create"]) != [] and .resourceNames != ["kyverno-test-deny"])] == []' >/dev/null \
+    || fail "get/patch/delete on validatingpolicies must be limited to resourceNames [kyverno-test-deny]: $rules"
 }
