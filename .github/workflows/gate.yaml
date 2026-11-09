@@ -27,7 +27,7 @@ jobs:
           ref: main
           fetch-depth: 0
       - id: guardrails
-        uses: twallac10/promo-workflows/actions/guardrails@v0.5.2
+        uses: twallac10/promo-workflows/actions/guardrails@v0.5.3
         with:
           token: ${{ github.token }}
 
