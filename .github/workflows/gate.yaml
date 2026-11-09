@@ -35,7 +35,8 @@ jobs:
     needs: guardrails
     # Always run: a skipped required check would count as passed.
     if: always()
-    environment: ${{ needs.guardrails.outputs.environment }}
+    # Only when guardrails passed: a PR that already failed shouldn't ask anyone to approve it.
+    environment: ${{ needs.guardrails.result == 'success' && needs.guardrails.outputs.environment || '' }}
     runs-on: ubuntu-latest
     steps:
       - env:

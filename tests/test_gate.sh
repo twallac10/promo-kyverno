@@ -4,7 +4,7 @@ test_gate_jobs() {
   [ -f "$G" ] || fail "no gate.yaml"
   [ "$(yq '.jobs | keys | join(",")' "$G")" = "guardrails,promotion-gate" ] || fail "jobs must be exactly guardrails, promotion-gate"
   [ "$(yq '.jobs["promotion-gate"].needs' "$G")" = guardrails ] || fail "promotion-gate needs guardrails"
-  [ "$(yq '.jobs["promotion-gate"].environment' "$G")" = '${{ needs.guardrails.outputs.environment }}' ] || fail "environment must come from guardrails"
+  [ "$(yq '.jobs["promotion-gate"].environment' "$G")" = "\${{ needs.guardrails.result == 'success' && needs.guardrails.outputs.environment || '' }}" ] || fail "environment must come from guardrails, and only when they passed (no approval request for a PR that already failed)"
   uses=$(yq '.jobs.guardrails.steps[] | select(.uses | test("actions/guardrails")) | .uses' "$G")
   promote=$(yq '.jobs.promote.uses' "$ROOT/.github/workflows/promote.yaml")
   [ "${uses##*@}" = "${promote##*@}" ] || fail "guardrails (${uses##*@}) and promote (${promote##*@}) pin different tags"
