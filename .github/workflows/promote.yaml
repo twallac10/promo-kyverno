@@ -8,5 +8,5 @@ permissions:
   contents: read
 jobs:
   promote:
-    uses: twallac10/promo-workflows/.github/workflows/promote.yaml@v0.4.0
+    uses: twallac10/promo-workflows/.github/workflows/promote.yaml@v0.4.1
     secrets: inherit
