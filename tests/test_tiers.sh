@@ -11,7 +11,7 @@ test_release_only_promotable_fields() {
       | select(
           ($p | test("^(apiVersion|kind|metadata\\.name|metadata\\.namespace)$")) or
           ($d.kind == "OCIRepository" and ($p == "spec.ref.digest" or $p == "metadata.annotations.promo.twallac10.dev/chart-version")) or
-          ($d.kind == "HelmRelease" and ($p | startswith("spec.values.")))
+          ($d.kind == "HelmRelease" and (($p | startswith("spec.values.")) or $p == "metadata.annotations.event.toolkit.fluxcd.io/release-id"))
           | not)
       | "\($d.kind):\($p)"')
     [ -z "$bad" ] || fail "tier $t release.yaml sets non-promotable fields: $bad"

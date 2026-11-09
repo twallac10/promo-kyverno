@@ -16,5 +16,7 @@ kind: HelmRelease
 metadata:
   name: kyverno
   namespace: kyverno
+  annotations:
+    event.toolkit.fluxcd.io/release-id: sha256:ca22fdc27a4889be59492d023d8f1afd67b21dc79b61a879956e813a48214d28
 spec:
   values: {}
