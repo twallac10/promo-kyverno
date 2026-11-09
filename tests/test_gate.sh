@@ -8,7 +8,7 @@ test_gate_jobs() {
   uses=$(yq '.jobs.guardrails.steps[] | select(.uses | test("actions/guardrails")) | .uses' "$G")
   promote=$(yq '.jobs.promote.uses' "$ROOT/.github/workflows/promote.yaml")
   [ "${uses##*@}" = "${promote##*@}" ] || fail "guardrails (${uses##*@}) and promote (${promote##*@}) pin different tags"
-  [ "$(yq '.on.pull_request.branches | join(",")' "$G")" = main ] || fail "gate runs on PRs to main"
+  [ "$(yq '.on.pull_request_target.branches | join(",")' "$G")" = main ] || fail "gate runs on PRs to main"
 }
 
 test_gate_fails_closed() {
@@ -22,4 +22,12 @@ test_gate_never_runs_pr_code() {
   [ "$(yq '.jobs.guardrails.steps[] | select(.uses | test("actions/checkout")) | .with.ref' "$G")" = main ] || fail "guardrails must check out main, not the PR"
   bad=$(yq '.. | select(has("run")) | .run' "$G" | grep -n '\${{' || true)
   [ -z "$bad" ] || fail "run block interpolates an expression: $bad"
+}
+
+test_gate_uses_mains_definition() {
+  # On pull_request GitHub runs the PR's own gate.yaml, which a PR could rewrite to pass.
+  # pull_request_target runs main's; safe here because the gate runs no PR code.
+  [ "$(yq '.on | keys | join(",")' "$G")" = pull_request_target ] || fail "gate must trigger on pull_request_target only"
+  perms=$(yq -o json -I0 '.permissions' "$G")
+  [ "$perms" = '{"contents":"read","deployments":"read","pull-requests":"read"}' ] || fail "gate permissions must be read-only: $perms"
 }

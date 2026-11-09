@@ -2,9 +2,12 @@
 # (promotion, revert or other) and runs its checks; promotion-gate then waits in
 # the target tier's environment (prd: your approval) and passes only if
 # guardrails succeeded.
+# pull_request_target: GitHub runs main's gate.yaml, not the PR's (a PR could
+# rewrite its own to pass). Safe here: read-only token, no secrets, and the
+# guardrails never run code from the PR.
 name: gate
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, edited]
     branches: [main]
 permissions:
@@ -24,7 +27,7 @@ jobs:
           ref: main
           fetch-depth: 0
       - id: guardrails
-        uses: twallac10/promo-workflows/actions/guardrails@v0.5.0
+        uses: twallac10/promo-workflows/actions/guardrails@v0.5.1
         with:
           token: ${{ github.token }}
 
