@@ -11,8 +11,14 @@ test_mirror_caller_pinned() {
   echo "$uses" | grep -Eq '^twallac10/promo-workflows/\.github/workflows/mirror\.yaml@v[0-9]+\.[0-9]+\.[0-9]+$' || fail "mirror caller not pinned to a tag: $uses"
 }
 
+# Callers pass only the promo App credentials, never every repo secret (no `secrets: inherit`).
+app_secrets_only() {
+  [ "$(yq -o json -I0 ".jobs.$2.secrets" "$1")" = '{"PROMO_APP_ID":"${{ secrets.PROMO_APP_ID }}","PROMO_APP_PRIVATE_KEY":"${{ secrets.PROMO_APP_PRIVATE_KEY }}"}' ] \
+    || fail "$1: pass exactly PROMO_APP_ID and PROMO_APP_PRIVATE_KEY"
+}
+
 test_mirror_caller_passes_app_secrets() {
-  [ "$(yq '.jobs.mirror.secrets' "$ROOT/.github/workflows/mirror.yaml")" = inherit ] || fail "mirror caller must use secrets: inherit (promo App token)"
+  app_secrets_only "$ROOT/.github/workflows/mirror.yaml" mirror
 }
 
 test_promote_caller() {
@@ -22,5 +28,5 @@ test_promote_caller() {
   promote=$(yq '.jobs.promote.uses' "$f"); mirror=$(yq '.jobs.mirror.uses' "$ROOT/.github/workflows/mirror.yaml")
   echo "$promote" | grep -Eq '^twallac10/promo-workflows/\.github/workflows/promote\.yaml@v[0-9]+\.[0-9]+\.[0-9]+$' || fail "promote caller not pinned to a tag: $promote"
   [ "${promote##*@}" = "${mirror##*@}" ] || fail "promote (${promote##*@}) and mirror (${mirror##*@}) pin different promo-workflows tags"
-  [ "$(yq '.jobs.promote.secrets' "$f")" = inherit ] || fail "promote caller must use secrets: inherit (promo App token)"
+  app_secrets_only "$f" promote
 }

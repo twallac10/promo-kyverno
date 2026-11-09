@@ -12,4 +12,7 @@ permissions:
 jobs:
   mirror:
     uses: twallac10/promo-workflows/.github/workflows/mirror.yaml@v0.4.1
-    secrets: inherit
+    # Only the promo App credentials, not every repo secret.
+    secrets:
+      PROMO_APP_ID: ${{ secrets.PROMO_APP_ID }}
+      PROMO_APP_PRIVATE_KEY: ${{ secrets.PROMO_APP_PRIVATE_KEY }}
