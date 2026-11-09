@@ -1,0 +1,56 @@
+# TIER-ONLY (prd): never promoted. Tells this app's GitHub repo how its
+# HelmRelease did here; the promote workflow takes it from there.
+#
+# Evidence source: promote-success is the one piece to swap when evidence
+# grows beyond Helm tests (point it at a verification Kustomization; see
+# promo-fleet NOTES.md "Richer evidence"). The promote workflow doesn't change.
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Alert
+metadata:
+  name: promote-success
+  namespace: kyverno
+spec:
+  providerRef:
+    name: promo-dispatch
+  eventSeverity: info
+  eventSources:
+    - kind: HelmRelease
+      name: kyverno
+  # Fires after the Helm tests pass, on install and on upgrade.
+  inclusionList:
+    - "^Helm test succeeded"
+  eventMetadata:
+    tier: prd
+    app: kyverno
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Alert
+metadata:
+  name: promote-failure
+  namespace: kyverno
+spec:
+  providerRef:
+    name: promo-dispatch
+  eventSeverity: error
+  eventSources:
+    - kind: HelmRelease
+      name: kyverno
+  # Only release failures; not transient errors such as a source not ready yet.
+  inclusionList:
+    - "^Helm (install|upgrade|test) failed"
+  eventMetadata:
+    tier: prd
+    app: kyverno
+---
+# Token: Secret promo-dispatch (key token), created by promo-fleet's task up
+# from ~/.config/promo/dispatch-prd.token. Never in Git.
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Provider
+metadata:
+  name: promo-dispatch
+  namespace: kyverno
+spec:
+  type: githubdispatch
+  address: https://github.com/twallac10/promo-kyverno
+  secretRef:
+    name: promo-dispatch
