@@ -28,3 +28,26 @@ subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}-test
     namespace: {{ .Release.Namespace }}
+---
+# The deny test creates and deletes its own test policy.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-test
+rules:
+  - apiGroups: [policies.kyverno.io]
+    resources: [validatingpolicies]
+    verbs: [create, delete, get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}-test
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-test
+    namespace: {{ .Release.Namespace }}

@@ -13,9 +13,18 @@ test_kyverno_excludes_system_namespaces() {
 
 test_kyverno_deny_test() {
   hooks=$(render dev | test_hooks)
-  echo "$hooks" | yq -e 'select(.kind=="ValidatingPolicy") | .spec.validationActions[] | select(. == "Deny")' >/dev/null || fail "no Deny test policy"
-  echo "$hooks" | yq -e 'select(.kind=="Pod" and .metadata.name=="kyverno-test-deny")' >/dev/null || fail "no kyverno-test-deny pod"
-  [ "$(echo "$hooks" | yq 'select(.kind=="ValidatingPolicy") | .metadata.annotations."helm.sh/hook-weight"')" -lt \
-    "$(echo "$hooks" | yq 'select(.kind=="Pod" and .metadata.name=="kyverno-test-deny") | .metadata.annotations."helm.sh/hook-weight" // "0"')" ] \
-    || fail "policy must be created before the pod"
+  # Helm can't map Kyverno kinds on first install (its CRDs are templates in this
+  # release), so no Kyverno object may be a hook: the test pod creates the policy.
+  kinds=$(echo "$hooks" | yq '.kind' | grep -v -- '---' | sort -u | tr '\n' ' ')
+  [ "$kinds" = "Pod " ] || fail "test hooks must be Pods only, got: $kinds"
+  pod=$(echo "$hooks" | yq 'select(.kind=="Pod" and .metadata.name=="kyverno-test-deny") | .spec.containers[0].args[0]')
+  [ -n "$pod" ] || fail "no kyverno-test-deny pod"
+  echo "$pod" | grep -q 'kind: ValidatingPolicy' || fail "test pod must create its own ValidatingPolicy"
+  echo "$pod" | grep -q 'validationActions: \[Deny\]' || fail "test policy must Deny"
+  echo "$pod" | grep -q 'trap .*kubectl delete validatingpolicy' || fail "test pod must delete its policy on exit"
+  rules=$(render dev | yq -o json -I0 'select(.kind=="ClusterRole" and .metadata.name=="kyverno-test") | .rules')
+  for v in create delete get; do
+    echo "$rules" | jq -e --arg v "$v" '.[] | select(.apiGroups==["policies.kyverno.io"] and (.resources|index("validatingpolicies")) and (.verbs|index($v)))' >/dev/null \
+      || fail "test ClusterRole lacks $v on validatingpolicies: $rules"
+  done
 }

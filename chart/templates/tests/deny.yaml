@@ -1,37 +1,16 @@
 {{- /*
 Proves the admission path end to end: a test-only policy denies pods carrying
 a test label, and a server-side dry-run of such a pod must be rejected.
+The pod creates the policy itself (and deletes it on exit) rather than making it
+a Helm hook: on first install Helm can't map Kyverno kinds, because Kyverno's
+CRDs are templates in this same release, and hook cleanup failed on that.
 */}}
-apiVersion: policies.kyverno.io/v1beta1
-kind: ValidatingPolicy
-metadata:
-  name: {{ .Release.Name }}-test-deny
-  annotations:
-    helm.sh/hook: test
-    helm.sh/hook-weight: "-10"
-    helm.sh/hook-delete-policy: before-hook-creation
-spec:
-  validationActions: [Deny]
-  matchConstraints:
-    resourceRules:
-      - apiGroups: [""]
-        apiVersions: [v1]
-        operations: [CREATE]
-        resources: [pods]
-  matchConditions:
-    - name: promo-test-pod
-      expression: "has(object.metadata.labels) && 'promo.twallac10.dev/kyverno-test' in object.metadata.labels"
-  validations:
-    - expression: "false"
-      message: promo kyverno test denial
----
 apiVersion: v1
 kind: Pod
 metadata:
   name: {{ .Release.Name }}-test-deny
   annotations:
     helm.sh/hook: test
-    helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation
 spec:
   restartPolicy: Never
@@ -42,6 +21,28 @@ spec:
       command: [sh, -c]
       args:
         - |
+          policy={{ .Release.Name }}-test-deny
+          trap 'kubectl delete validatingpolicy "$policy" --ignore-not-found' EXIT
+          kubectl apply -f - <<EOF
+          apiVersion: policies.kyverno.io/v1beta1
+          kind: ValidatingPolicy
+          metadata:
+            name: $policy
+          spec:
+            validationActions: [Deny]
+            matchConstraints:
+              resourceRules:
+                - apiGroups: [""]
+                  apiVersions: [v1]
+                  operations: [CREATE]
+                  resources: [pods]
+            matchConditions:
+              - name: promo-test-pod
+                expression: "has(object.metadata.labels) && 'promo.twallac10.dev/kyverno-test' in object.metadata.labels"
+            validations:
+              - expression: "false"
+                message: promo kyverno test denial
+          EOF
           # The policy's webhook rule takes a few seconds to register.
           for i in $(seq 1 30); do
             out=$(kubectl run promo-kyverno-test -n {{ .Values.promoTest.dryRunNamespace }} --image=busybox \
