@@ -1,0 +1,93 @@
+{{- /*
+Behaviour tests (Testkube): the admission path end to end. A test-only policy
+denies pods carrying a test label; a server-side dry-run of such a pod must be
+rejected. The check creates the policy and deletes it on exit.
+*/}}
+{{- define "kyverno.check.deny-dry-run" -}}
+policy={{ .Release.Name }}-test-deny
+trap 'kubectl delete validatingpolicy "$policy" --ignore-not-found' EXIT
+kubectl apply -f - <<EOF
+apiVersion: policies.kyverno.io/v1beta1
+kind: ValidatingPolicy
+metadata:
+  name: $policy
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [pods]
+  matchConditions:
+    - name: promo-test-pod
+      expression: "has(object.metadata.labels) && 'promo.twallac10.dev/kyverno-test' in object.metadata.labels"
+  validations:
+    - expression: "false"
+      message: promo kyverno test denial
+EOF
+# The policy's webhook rule takes a few seconds to register.
+for i in $(seq 1 30); do
+  out=$(kubectl run promo-kyverno-test -n {{ .Values.promoTest.dryRunNamespace }} --image=busybox \
+    --labels=promo.twallac10.dev/kyverno-test=bad --dry-run=server 2>&1) || true
+  if echo "$out" | grep -q "promo kyverno test denial"; then echo "PASS: denied: $out"; exit 0; fi
+  echo "attempt $i: $out"; sleep 3
+done
+echo "FAIL: known-bad pod was not denied"; exit 1
+{{- end -}}
+{{ include "promo.behaviour" (dict "ctx" . "checks" (list
+  (dict "name" "deny-dry-run" "script" (include "kyverno.check.deny-dry-run" .))
+)) }}
+---
+# The deny check: create its test policy (create can't be limited by name), and
+# get/patch/delete only that one.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-behaviour
+rules:
+  - apiGroups: [policies.kyverno.io]
+    resources: [validatingpolicies]
+    verbs: [create]
+  - apiGroups: [policies.kyverno.io]
+    resources: [validatingpolicies]
+    resourceNames: [{{ .Release.Name }}-test-deny]
+    verbs: [get, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-behaviour
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}-behaviour
+subjects:
+  - kind: ServiceAccount
+    name: promo-behaviour-{{ .Release.Name }}
+    namespace: testkube
+---
+# Server-side dry-runs of pods in the dry-run namespace (Kyverno's webhooks skip its own).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-behaviour
+  namespace: {{ .Values.promoTest.dryRunNamespace }}
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-behaviour
+  namespace: {{ .Values.promoTest.dryRunNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-behaviour
+subjects:
+  - kind: ServiceAccount
+    name: promo-behaviour-{{ .Release.Name }}
+    namespace: testkube

@@ -11,4 +11,6 @@ spec:
       retries: 0
       remediateLastFailure: true
       strategy: rollback
-  values: {}
+  values:
+    behaviour:
+      tier: stg

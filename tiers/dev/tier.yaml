@@ -10,4 +10,6 @@ spec:
     remediation:
       retries: 0
       remediateLastFailure: false
-  values: {}
+  values:
+    behaviour:
+      tier: dev

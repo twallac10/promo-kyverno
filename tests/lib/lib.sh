@@ -59,3 +59,8 @@ render() {
 
 # Test hook resources in a rendered manifest stream on stdin.
 test_hooks() { yq 'select(.metadata.annotations."helm.sh/hook" == "test")'; }
+
+# The behaviour-test objects (Testkube) an app's chart renders for a tier.
+behaviour() { render "${1:-dev}" | yq "select(.metadata.namespace == \"testkube\" or .kind == \"TestWorkflowExecution\" or (.kind == \"Role\" and .metadata.name == \"promo-behaviour-$APP\") or (.kind == \"RoleBinding\" and .metadata.name == \"promo-behaviour-$APP\"))"; }
+# Names of the behaviour checks (TestWorkflow shell steps) for a tier.
+check_names() { behaviour "${1:-dev}" | yq 'select(.kind=="TestWorkflow") | .spec.steps[] | select(has("shell")) | .name' | grep -v -- '---'; }
