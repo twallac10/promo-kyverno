@@ -1,28 +1,9 @@
-# TIER-ONLY (stg): never promoted. Tells this app's GitHub repo how its
-# HelmRelease did here; the promote workflow takes it from there.
+# TIER-ONLY (stg): never promoted. Tells this app's GitHub repo when its Helm
+# smoke tests fail here (Flux keeps rolling back stg/prd on its own).
 #
-# Evidence source: promote-success is the one piece to swap when evidence
-# grows beyond Helm tests (point it at a verification Kustomization; see
-# promo-fleet NOTES.md "Richer evidence"). The promote workflow doesn't change.
-apiVersion: notification.toolkit.fluxcd.io/v1
-kind: Alert
-metadata:
-  name: promote-success
-  namespace: kyverno
-spec:
-  providerRef:
-    name: promo-dispatch
-  eventSeverity: info
-  eventSources:
-    - kind: HelmRelease
-      name: kyverno
-  # Fires after the Helm tests pass, on install and on upgrade.
-  inclusionList:
-    - "^Helm test succeeded"
-  eventMetadata:
-    tier: stg
-    app: kyverno
----
+# Promotion evidence doesn't come from here any more: the behaviour tests run in
+# Testkube and report (signed) through promo-fleet's promo-report step; see
+# promo-fleet NOTES.md "Test evidence".
 apiVersion: notification.toolkit.fluxcd.io/v1
 kind: Alert
 metadata:

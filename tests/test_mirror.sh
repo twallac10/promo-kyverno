@@ -24,7 +24,8 @@ test_mirror_caller_passes_app_secrets() {
 test_promote_caller() {
   f="$ROOT/.github/workflows/promote.yaml"
   [ -f "$f" ] || fail "no promote caller"
-  [ "$(yq '.on.repository_dispatch.types | join(",")' "$f")" = "HelmRelease/$APP.$APP" ] || fail "dispatch types must be HelmRelease/$APP.$APP"
+  [ "$(yq '.on.repository_dispatch.types | join(",")' "$f")" = "HelmRelease/$APP.$APP,TestReport/$APP.$APP" ] || fail "dispatch types: Flux events and Testkube reports"
+  [ "$(yq -o json -I0 '.permissions' "$f")" = '{"contents":"read","id-token":"write","attestations":"write","packages":"write"}' ] || fail "promote caller permissions (sign and push evidence)"
   promote=$(yq '.jobs.promote.uses' "$f"); mirror=$(yq '.jobs.mirror.uses' "$ROOT/.github/workflows/mirror.yaml")
   echo "$promote" | grep -Eq '^twallac10/promo-workflows/\.github/workflows/promote\.yaml@v[0-9]+\.[0-9]+\.[0-9]+$' || fail "promote caller not pinned to a tag: $promote"
   [ "${promote##*@}" = "${mirror##*@}" ] || fail "promote (${promote##*@}) and mirror (${mirror##*@}) pin different promo-workflows tags"

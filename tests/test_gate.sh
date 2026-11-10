@@ -29,5 +29,5 @@ test_gate_uses_mains_definition() {
   # pull_request_target runs main's; safe here because the gate runs no PR code.
   [ "$(yq '.on | keys | join(",")' "$G")" = pull_request_target ] || fail "gate must trigger on pull_request_target only"
   perms=$(yq -o json -I0 '.permissions' "$G")
-  [ "$perms" = '{"contents":"read","deployments":"read","pull-requests":"read"}' ] || fail "gate permissions must be read-only: $perms"
+  [ "$perms" = '{"contents":"read","deployments":"read","pull-requests":"read","attestations":"read"}' ] || fail "gate permissions must be read-only: $perms"
 }
